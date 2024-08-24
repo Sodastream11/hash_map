@@ -3,15 +3,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 #include <sys/random.h>
 
 
 hash_map* hm_alloc(const size_t size) {
     hash_map* map = calloc(1, sizeof(hash_map));
-    map->size = size;
     map->n = 0;
 
-    map->chain_arr = calloc(map->size, sizeof(map_entry*));
+    map->chain_arr = calloc(size, sizeof(map_entry*));
+    map->size = size;
 
     uint32_t seed;
     getrandom(&seed, sizeof(uint32_t), 0);
@@ -21,12 +22,19 @@ hash_map* hm_alloc(const size_t size) {
 }
 
 void hm_resize(hash_map *map, const size_t size) {
-
+#ifdef DEBUG
+    printf("resizing map to size: %d\n", size);
+#endif
     map_entry** new_chain_arr = calloc(size, sizeof(map_entry*));
 
     for (int i = 0; i < map->size; i++) {
-        chain_move_to_new_arr(map->chain_arr[i], new_chain_arr, size);
-        map->chain_arr[i] = NULL;
+#ifdef DEBUG
+        printf("moving nodes of chain: %d to new array\n", i);
+#endif
+        if (map->chain_arr[i] != NULL) {
+            chain_move_to_new_arr(map->chain_arr[i], new_chain_arr, size);
+            map->chain_arr[i] = NULL;
+        }
     }
 
     free(map->chain_arr);
@@ -53,39 +61,64 @@ void chain_move_to_new_arr(map_entry* chain, map_entry** new_chain_arr, const si
 }
 
 
-void hm_set(hash_map* map, const void* key, const float val) {
-    map_entry new_entry = { .key = key, .val = val, .next = NULL , .hash = hash(key, strlen(key), map->seed)};
-    uint32_t idx =  new_entry.hash % map->size;
-
+void hm_set(hash_map* map, const void* key, const double val) {
+#ifdef DEBUG
+    printf("setting key: %s with value: %f\n", key, val);
+#endif
+    map_entry* new_entry = calloc(1, sizeof(map_entry));
+    *new_entry = (map_entry) { .key = key, .val = val, .next = NULL , .hash = hash(key, strlen(key), map->seed)};
+    uint32_t idx = new_entry->hash % map->size;
+#ifdef DEBUG
+    printf("idx: %lu with hash: %lu\n", idx, new_entry->hash);
+#endif
     map_entry *entry;
     if(entry = map->chain_arr[idx], entry != NULL) {
-        new_entry.next = entry;
+        new_entry->next = entry;
     } 
 
-    map->chain_arr[idx] = &new_entry;
+    map->chain_arr[idx] = new_entry;
+    map->n++;
     
-    if ((float)++map->n/(float)map->size >= LOAD_FACTOR_THRESHOLD) {
-        hm_resize(map, (float)map->n/LOAD_FACTOR_RESET);
+#ifdef DEBUG
+    printf("checking load factor with n: %lu size: %lu\n", map->n,  map->size);
+#endif
+    if ((double)map->n / (double)map->size >= LOAD_FACTOR_THRESHOLD) {
+        hm_resize(map, ceil((double)map->n/LOAD_FACTOR_RESET));
     }
 }
 
-float hm_get(const hash_map* map, const void* key) {
+double hm_get(const hash_map* map, const void* key) {
     uint32_t idx =  hash(key, strlen(key), map->seed) % map->size;
 
-    map_entry* entry = map->chain_arr[idx];
-    while (entry = entry->next, entry != NULL) {
+    map_entry* entry;
+    LINKED_LIST_MAP(map->chain_arr[idx], entry, 
         if (!strcmp(entry->key, key)) {
             break;
         }
-    }
+    )
     return entry->val;
 }
 
-void hm_free(hash_map* map) {
-
+void hm_print(const hash_map* map) {
+    printf("size: %d\n", map->size);
+    printf("amount of pairs: %d\n", map->n);
+    printf("seed: %lu\n", map->seed);
     for (int i = 0; i < map->size; i++) {
-        chain_free(*(map->chain_arr + i));
-        map->chain_arr[i] = NULL;
+        map_entry* entry;
+        LINKED_LIST_MAP(map->chain_arr[i], entry, printf(" -- %f", entry->val);)
+        printf("\n|\n");
+    }
+}
+
+void hm_free(hash_map* map) {
+    for (int i = 0; i < map->size; i++) {
+#ifdef DEBUG
+        printf("freeing chain with idx: %d\n", i);
+#endif
+        if (map->chain_arr[i] != NULL) {
+            chain_free(map->chain_arr[i]);
+            map->chain_arr[i] = NULL;
+        }
     }
     free(map->chain_arr);
     map->chain_arr = NULL;
@@ -94,11 +127,20 @@ void hm_free(hash_map* map) {
 }
 
 void chain_free(map_entry* chain) {
+#ifdef DEBUG
+    printf("freeing chain recursively: %x\n", chain);
+#endif
     if (chain->next != NULL) {
+#ifdef DEBUG
+        printf("    recursive call\n");
+#endif
         chain_free(chain->next);
         chain->next = NULL;
     }
     free(chain);
+#ifdef DEBUG
+    printf("freed chain recursively\n");
+#endif
 }
 
 
