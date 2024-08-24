@@ -17,6 +17,15 @@ int main() {
     puts("map after resize:\n");
     hm_print(map);
 
+    double get_val = hm_get(map, "testkey");
+    if (get_val != 1.0) {
+        printf("wrong get value for key %s: %f, should be: %f \n", "testkey", get_val, 1.0);
+    }
+
+    printf("got value for key '%s': %f\n", "testkey", get_val);
+    get_val = hm_get(map, "fuck, this key doesn't exist");
+    printf("got value for key '%s': %f\n", "fuck, this key doesn't exist", get_val);
+
     hm_free(map);
     return 0;
 }

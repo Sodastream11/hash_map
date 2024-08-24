@@ -89,6 +89,7 @@ void hm_set(hash_map* map, const void* key, const double val) {
 
 double hm_get(const hash_map* map, const void* key) {
     uint32_t idx =  hash(key, strlen(key), map->seed) % map->size;
+    
 
     map_entry* entry;
     LINKED_LIST_MAP(map->chain_arr[idx], entry, 
@@ -96,6 +97,9 @@ double hm_get(const hash_map* map, const void* key) {
             break;
         }
     )
+    if (entry == NULL) {
+        return 0; // TODO: make errors more clear
+    }
     return entry->val;
 }
 
