@@ -92,7 +92,7 @@ double hm_get(const hash_map* map, const void* key) {
     
 
     map_entry* entry;
-    LINKED_LIST_MAP(map->chain_arr[idx], entry, 
+    LINKED_LIST_ITER(map->chain_arr[idx], entry, 
         if (!strcmp(entry->key, key)) {
             break;
         }
@@ -109,7 +109,7 @@ void hm_print(const hash_map* map) {
     printf("seed: %lu\n", map->seed);
     for (int i = 0; i < map->size; i++) {
         map_entry* entry;
-        LINKED_LIST_MAP(map->chain_arr[i], entry, printf(" -- %f", entry->val);)
+        LINKED_LIST_ITER(map->chain_arr[i], entry, printf(" -- %f", entry->val);)
         printf("\n|\n");
     }
 }

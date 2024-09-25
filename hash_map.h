@@ -19,7 +19,7 @@ typedef struct {
 #define LOAD_FACTOR_THRESHOLD 0.7
 #define LOAD_FACTOR_RESET 0.5
 
-#define LINKED_LIST_MAP(list, iter_ptr, expr) \
+#define LINKED_LIST_ITER(list, iter_ptr, expr) \
     iter_ptr = list;               \
     while(iter_ptr != NULL) {      \
         expr                       \
